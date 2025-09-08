@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Thin Node.js client for the SearchMCP REST API",
   "type": "module",
+  "repository": {
+    "url": "https://github.com/searchmcp/searchmcp-js"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
