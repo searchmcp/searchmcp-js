@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
     "allowJs": true,
+    "checkJs": false,
     "declaration": true,
     "emitDeclarationOnly": true,
-    "declarationMap": false,
     "outDir": "dist",
-    "skipLibCheck": true,
-    "checkJs": true,
-    "module": "ESNext",
     "target": "ES2020",
-    "moduleResolution": "Bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
     "types": []
   },
   "include": [

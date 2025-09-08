@@ -6,8 +6,9 @@ export class APIError extends Error {
      * @param {string} message
      * @param {{ status?: number, code?: string, details?: unknown, response?: unknown }} [meta]
      */
-    constructor(message, {status, code, details, response} = {}) {
+    constructor(message, meta) {
         super(message);
+        const {status, code, details, response} = meta;
         this.name = "APIError";
         this.status = status;
         this.code = code;
@@ -37,7 +38,14 @@ function withTimeout(ms, upstreamSignal) {
 }
 
 export class SearchMCPClient {
-    constructor({ apiKey, baseURL = "https://api.searchmcp.io", timeout = 10_000, maxRetries = 2, userAgentExtra } = {}) {
+    constructor(opts = {}) {
+        const {
+            apiKey,
+            baseURL = "https://api.searchmcp.io",
+            timeout = 10_000,
+            maxRetries = 2,
+            userAgentExtra,
+        } = opts;
         if (!apiKey) throw new Error("apiKey is required");
         this.apiKey = apiKey;
         this.baseURL = baseURL.replace(/\/+$/, "");
@@ -47,14 +55,14 @@ export class SearchMCPClient {
     }
 
     /**
-     * @param {SearchRequest} params
+     * @param {SearchRequestSchema} params
      * @param {{ signal?: AbortSignal }} [options]
-     * @returns {Promise<SearchResponse>}
+     * @returns {Promise<SearchResponseSchema>}
      */
     async search(params, options = {}) {
         const parsed = SearchRequestSchema.safeParse(params);
         if (!parsed.success) {
-            throw new APIError("Invalid SearchRequest", { status: 400, details: parsed.error.flatten() });
+            throw new APIError("Invalid SearchRequest", {status: 400, details: parsed.error.flatten()});
         }
 
         const url = `${this.baseURL}/v1/search`;
@@ -62,13 +70,13 @@ export class SearchMCPClient {
 
         let attempt = 0;
         while (true) {
-            const { signal, cancel } = withTimeout(this.timeout, options.signal);
+            const {signal, cancel} = withTimeout(this.timeout, options.signal);
             try {
                 const res = await fetch(url, {
                     method: "POST",
                     headers: buildHeaders(
                         this.apiKey,
-                        this.userAgentExtra ? { "user-agent": `@searchmcp/client ${this.userAgentExtra}` } : undefined
+                        this.userAgentExtra ? {"user-agent": `@searchmcp/client ${this.userAgentExtra}`} : undefined
                     ),
                     body,
                     signal,
@@ -79,11 +87,11 @@ export class SearchMCPClient {
                 try {
                     json = text ? JSON.parse(text) : {};
                 } catch {
-                    json = { raw: text };
+                    json = {raw: text};
                 }
 
                 if (!res.ok) {
-                    throw new APIError(`HTTP ${res.status}`, { status: res.status, response: json });
+                    throw new APIError(`HTTP ${res.status}`, {status: res.status, response: json});
                 }
 
                 const out = SearchResponseSchema.safeParse(json);
