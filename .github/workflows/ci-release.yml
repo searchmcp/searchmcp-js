@@ -6,67 +6,54 @@ on:
     tags:
       - 'v*.*.*'
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
+          # set to an actual pnpm version you use (9.x or 10.x)
           version: 10.15.0
 
-      - name: Setup Node.js (LTS)
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
-
-      - name: Run tests
-        run: pnpm test
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
 
   publish:
     name: Publish to npm
     needs: test
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 10.15.0
 
-      - name: Setup Node.js (LTS)
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
 
       - name: Verify tag matches package.json version
         run: |
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "Tag v$TAG_VERSION does not match package.json version $PKG_VERSION"
-            exit 1
-          fi
+          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync('package.json','utf8')).version;const t=process.env.GITHUB_REF.replace('refs/tags/v','');if(v!==t){console.error(`Tag v${t} does not match package.json version ${v}`);process.exit(1)}"
 
       - name: Build
         run: pnpm -s build || true
