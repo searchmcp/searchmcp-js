@@ -1,8 +1,11 @@
 # @searchmcp/client
+[![npm (scoped)](https://img.shields.io/npm/v/@searchmcp/client.svg)](https://www.npmjs.com/package/@searchmcp/client)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 Thin JavaScript/Node.js client for the [SearchMCP REST API](https://searchmcp.io).
 Provides input/output validation with [zod](https://github.com/colinhacks/zod), retry/backoff handling, and first-class
 error reporting.
+
 
 ## Installation
 
