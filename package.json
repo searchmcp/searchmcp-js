@@ -1,6 +1,6 @@
 {
   "name": "@searchmcp/client",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Thin Node.js client for the SearchMCP REST API",
   "type": "module",
   "homepage": "https://searchmcp.io",
