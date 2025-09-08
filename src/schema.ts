@@ -1,6 +1,6 @@
 import {z} from "zod";
 
-export const Location = Object.freeze({
+export const Location = {
     UK: "United Kingdom",
     USA: "United States",
     Mexico: "Mexico",
@@ -14,18 +14,23 @@ export const Location = Object.freeze({
     DUBAI: "Dubai International Airport, Dubai, United Arab Emirates",
     BANGKOK: "Bangkok, Bangkok, Thailand",
     SOHO_NYC_USA: "SoHo, New York, United States",
-});
+} as const;
 
-export const DateRange = Object.freeze({
+export type LocationKey = keyof typeof Location;
+export type LocationValue = (typeof Location)[LocationKey];
+
+export const DateRange = {
     ANYTIME: "ANYTIME",
     PAST_YEAR: "PAST_YEAR",
     PAST_MONTH: "PAST_MONTH",
     PAST_WEEK: "PAST_WEEK",
     PAST_24_HOURS: "PAST_24_HOURS",
     PAST_HOUR: "PAST_HOUR",
-});
+} as const;
 
-export const CountryCode = Object.freeze({
+export type DateRangeKey = keyof typeof DateRange;
+
+export const CountryCode = {
     AF: "AF", AX: "AX", AL: "AL", DZ: "DZ", AS: "AS", AD: "AD", AO: "AO", AI: "AI", AQ: "AQ",
     AG: "AG", AR: "AR", AM: "AM", AW: "AW", AU: "AU", AT: "AT", AZ: "AZ", BS: "BS", BH: "BH",
     BD: "BD", BB: "BB", BY: "BY", BE: "BE", BZ: "BZ", BJ: "BJ", BM: "BM", BT: "BT", BO: "BO",
@@ -54,64 +59,84 @@ export const CountryCode = Object.freeze({
     TT: "TT", TN: "TN", TR: "TR", TM: "TM", TC: "TC", TV: "TV", UG: "UG", UA: "UA", AE: "AE",
     GB: "GB", US: "US", UM: "UM", UY: "UY", UZ: "UZ", VU: "VU", VE: "VE", VN: "VN", VG: "VG",
     VI: "VI", WF: "WF", EH: "EH", YE: "YE", ZM: "ZM", ZW: "ZW",
-});
+} as const;
+
+export type CountryCodeKey = keyof typeof CountryCode;
 
 const LocationSchema = z
     .union([
-        z.enum(Object.keys(Location)),
-        z.enum(Object.values(Location)),
+        z.enum(Object.keys(Location) as [LocationKey, ...LocationKey[]]),
+        z.enum(Object.values(Location) as [LocationValue, ...LocationValue[]]),
     ])
-    .transform((val) => (val in Location ? Location[val] : val));
+    .transform((val) => (val in Location ? Location[val as LocationKey] : val));
 
-export const SearchRequestSchema = z.object({
-    query: z.string().min(1).max(1024).transform((t) => t.trim()),
-    location: LocationSchema.optional(),
-    country: z.enum(Object.keys(CountryCode)),
-}).partial().extend({
-    numberOfResults: z.number().int().min(1).max(100).default(10),
-    dateRange: z.enum(Object.keys(DateRange)).optional(),
-});
+export const SearchRequestSchema = z
+    .object({
+        query: z.string().min(1).max(1024).transform((t) => t.trim()),
+        location: LocationSchema.optional(),
+        country: z.enum(Object.keys(CountryCode) as [CountryCodeKey, ...CountryCodeKey[]]),
+    })
+    .partial()
+    .extend({
+        numberOfResults: z.number().int().min(1).max(100).default(10),
+        dateRange: z.enum(Object.keys(DateRange) as [DateRangeKey, ...DateRangeKey[]]).optional(),
+    });
 
+export const SearchParametersSchema = z
+    .object({
+        query: z.string().min(1, "query is required"),
+        type: z.string().optional(),
+        engine: z.string().optional(),
+    })
+    .strict();
 
-export const SearchParametersSchema = z.object({
-    query: z.string().min(1, "query is required"),
-    type: z.string().optional(),
-    engine: z.string().optional(),
-}).strict();
+export const KnowledgeGraphSchema = z
+    .object({
+        title: z.string().optional(),
+        imageUrl: z.string().url().optional(),
+        description: z.string().optional(),
+        descriptionSource: z.string().optional(),
+        descriptionLink: z.string().url().optional(),
+        attributes: z.record(z.string(), z.string()).optional(),
+    })
+    .strict();
 
-export const KnowledgeGraphSchema = z.object({
-    title: z.string().optional(),
-    imageUrl: z.string().url().optional(),
-    description: z.string().optional(),
-    descriptionSource: z.string().optional(),
-    descriptionLink: z.string().url().optional(),
-    attributes: z.record(z.string(), z.string()).optional(),
-}).strict();
+export const OrganicItemSchema = z
+    .object({
+        title: z.string().min(1),
+        link: z.string().url(),
+        snippet: z.string().optional(),
+        position: z.number().int().positive().optional(),
+        date: z.string().optional(),
+    })
+    .strict();
 
-export const OrganicItemSchema = z.object({
-    title: z.string().min(1),
-    link: z.string().url(),
-    snippet: z.string().optional(),
-    position: z.number().int().positive().optional(),
-    date: z.string().optional(),
-}).strict();
+export const RelatedSearchSchema = z
+    .object({
+        query: z.string().min(1),
+    })
+    .strict();
 
-export const RelatedSearchSchema = z.object({
-    query: z.string().min(1),
-}).strict();
-
-export const SearchStatus = Object.freeze({
+export const SearchStatus = {
     UNAUTHORIZED: "UNAUTHORIZED",
     INSUFFICIENT_CREDITS: "INSUFFICIENT_CREDITS",
     ERROR: "ERROR",
     SUCCESS: "SUCCESS",
-});
+} as const;
 
-export const SearchResponseSchema = z.object({
-    status: z.enum(Object.values(SearchStatus)),
-    searchParameters: SearchParametersSchema.optional(),
-    knowledgeGraph: KnowledgeGraphSchema.optional(),
-    organic: z.array(OrganicItemSchema).optional(),
-    relatedSearches: z.array(RelatedSearchSchema).optional(),
-    credits: z.number().int().nonnegative().optional(),
-}).strict();
+export type SearchStatusValue = (typeof SearchStatus)[keyof typeof SearchStatus];
+
+export const SearchResponseSchema = z
+    .object({
+        status: z.enum(Object.values(SearchStatus) as [SearchStatusValue, ...SearchStatusValue[]]),
+        searchParameters: SearchParametersSchema.optional(),
+        knowledgeGraph: KnowledgeGraphSchema.optional(),
+        organic: z.array(OrganicItemSchema).optional(),
+        relatedSearches: z.array(RelatedSearchSchema).optional(),
+        credits: z.number().int().nonnegative().optional(),
+    })
+    .strict();
+
+// Types
+export type SearchRequest = z.infer<typeof SearchRequestSchema>;
+export type SearchResponse = z.infer<typeof SearchResponseSchema>;

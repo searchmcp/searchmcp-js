@@ -1,14 +1,21 @@
-import {SearchRequestSchema, SearchResponseSchema} from "./schema.js";
+import {SearchRequest, SearchRequestSchema, SearchResponse, SearchResponseSchema} from "./schema.js";
 
-/** Normalized error for all failures (HTTP, validation, network, parse). */
 export class APIError extends Error {
-    /**
-     * @param {string} message
-     * @param {{ status?: number, code?: string, details?: unknown, response?: unknown }} [meta]
-     */
-    constructor(message, meta) {
+    status?: number;
+    code?: string;
+    details?: unknown;
+    response?: unknown;
+
+    constructor(
+        message: string,
+        {status, code, details, response}: {
+            status?: number;
+            code?: string;
+            details?: unknown;
+            response?: unknown
+        } = {}
+    ) {
         super(message);
-        const {status, code, details, response} = meta;
         this.name = "APIError";
         this.status = status;
         this.code = code;
@@ -17,7 +24,7 @@ export class APIError extends Error {
     }
 }
 
-function buildHeaders(apiKey, extra) {
+function buildHeaders(apiKey: string, extra?: Record<string, string>) {
     return {
         "content-type": "application/json",
         "x-api-key": apiKey,
@@ -25,7 +32,7 @@ function buildHeaders(apiKey, extra) {
     };
 }
 
-function withTimeout(ms, upstreamSignal) {
+function withTimeout(ms: number, upstreamSignal?: AbortSignal) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), ms);
     if (upstreamSignal) {
@@ -38,14 +45,25 @@ function withTimeout(ms, upstreamSignal) {
 }
 
 export class SearchMCPClient {
-    constructor(opts = {}) {
-        const {
-            apiKey,
-            baseURL = "https://api.searchmcp.io",
-            timeout = 10_000,
-            maxRetries = 2,
-            userAgentExtra,
-        } = opts;
+    private readonly apiKey: string;
+    private readonly baseURL: string;
+    private readonly timeout: number;
+    private readonly maxRetries: number;
+    private readonly userAgentExtra?: string;
+
+    constructor({
+                    apiKey,
+                    baseURL = "https://api.searchmcp.io",
+                    timeout = 10_000,
+                    maxRetries = 2,
+                    userAgentExtra,
+                }: {
+        apiKey: string;
+        baseURL?: string;
+        timeout?: number;
+        maxRetries?: number;
+        userAgentExtra?: string;
+    }) {
         if (!apiKey) throw new Error("apiKey is required");
         this.apiKey = apiKey;
         this.baseURL = baseURL.replace(/\/+$/, "");
@@ -55,11 +73,11 @@ export class SearchMCPClient {
     }
 
     /**
-     * @param {SearchRequestSchema} params
-     * @param {{ signal?: AbortSignal }} [options]
-     * @returns {Promise<SearchResponseSchema>}
+     * @param {SearchRequest} params - Search input matching the schema
+     * @param {{ signal?: AbortSignal }} [options] - Optional abort signal
+     * @returns {Promise<SearchResponse>}
      */
-    async search(params, options = {}) {
+    async search(params: SearchRequest, options: { signal?: AbortSignal } = {}): Promise<SearchResponse> {
         const parsed = SearchRequestSchema.safeParse(params);
         if (!parsed.success) {
             throw new APIError("Invalid SearchRequest", {status: 400, details: parsed.error.flatten()});
@@ -83,7 +101,7 @@ export class SearchMCPClient {
                 });
 
                 const text = await res.text();
-                let json;
+                let json: unknown;
                 try {
                     json = text ? JSON.parse(text) : {};
                 } catch {
@@ -103,7 +121,7 @@ export class SearchMCPClient {
                     });
                 }
                 return out.data;
-            } catch (err) {
+            } catch (err: any) {
                 const apiErr =
                     err instanceof APIError
                         ? err
@@ -113,7 +131,7 @@ export class SearchMCPClient {
                         });
 
                 const s = apiErr.status;
-                const retryable = s === 429 || (s >= 500 && s <= 599);
+                const retryable = s === 429 || (s !== undefined && s >= 500 && s <= 599);
                 if (retryable && attempt < this.maxRetries) {
                     attempt++;
                     const backoff = Math.min(1000 * 2 ** (attempt - 1), 4000);
@@ -127,12 +145,10 @@ export class SearchMCPClient {
         }
     }
 
-    /** Expose schemas alongside the class for convenience */
     static inputSchema = SearchRequestSchema;
     static outputSchema = SearchResponseSchema;
 }
 
-/** Convenience factory */
-export function createSearchMCPClient(opts) {
+export function createSearchMCPClient(opts: ConstructorParameters<typeof SearchMCPClient>[0]) {
     return new SearchMCPClient(opts);
 }
