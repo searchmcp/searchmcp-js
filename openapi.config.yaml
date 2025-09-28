@@ -1,0 +1,16 @@
+generatorName: typescript-fetch
+inputSpec: https://searchmcp.io/openapi.json
+outputDir: ./src/generated
+additionalProperties:
+  npmName: "@searchmcp/searchmcp-js"
+  npmVersion: "1.0.0"
+  npmRepository: "https://registry.npmjs.org"
+  supportsES6: true
+  typescriptThreePlus: true
+  useSingleRequestParameter: true
+  withInterfaces: true
+  withSeparateModelsAndApi: true
+  modelPackage: models
+  apiPackage: api
+  enumUnknownDefaultCase: true
+  apiName: SearchMCPClient

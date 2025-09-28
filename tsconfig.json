@@ -8,7 +8,12 @@
     "emitDeclarationOnly": false,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "exactOptionalPropertyTypes": false
+    "exactOptionalPropertyTypes": false,
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ]
   },
   "include": [
     "src"

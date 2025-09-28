@@ -1,2 +1,3 @@
 onlyBuiltDependencies:
+  - '@openapitools/openapi-generator-cli'
   - esbuild

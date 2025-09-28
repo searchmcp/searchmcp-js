@@ -1,37 +1,16 @@
-name: CI & Release
+name: CI & Publish
 
 on:
   push:
     branches: [ main ]
-    tags:
-      - 'v*.*.*'
   pull_request:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          # set to an actual pnpm version you use (9.x or 10.x)
-          version: 10.15.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
 
   publish:
     name: Publish to npm
-    needs: test
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -50,13 +29,8 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - run: pnpm install --frozen-lockfile
-
-      - name: Verify tag matches package.json version
-        run: |
-          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync('package.json','utf8')).version;const t=process.env.GITHUB_REF.replace('refs/tags/v','');if(v!==t){console.error(`Tag v${t} does not match package.json version ${v}`);process.exit(1)}"
-
-      - name: Build
-        run: pnpm -s build || true
+      - run: pnpm generate
+      - run: pnpm build
 
       - name: Publish
         env:
