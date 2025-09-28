@@ -1,106 +1,99 @@
 # @searchmcp/client
+
 [![npm (scoped)](https://img.shields.io/npm/v/@searchmcp/client.svg)](https://www.npmjs.com/package/@searchmcp/client)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-Thin JavaScript/Node.js client for the [SearchMCP REST API](https://searchmcp.io).
-Provides input/output validation with [zod](https://github.com/colinhacks/zod), retry/backoff handling, and first-class
-error reporting.
+Thin TypeScript/JavaScript SDK for the [SearchMCP API](https://searchmcp.io).  
+Generated from the [OpenAPI spec](https://searchmcp.io/openapi.json) using `typescript-fetch`.
 
+Supports **REST (`/v1/search`)** endpoint.  
+Includes full type definitions out of the box.
+
+## Pre-Installation
+
+Checkout
+
+* 📚 [SearchMCP Docs](https://searchmcp.io/docs)
+* 🔎 [SearchMCP API Reference](https://searchmcp.io/api-reference)
+
+---
 
 ## Installation
 
 ```bash
 npm install @searchmcp/client
 # or
-yarn add @searchmcp/client
-# or
 pnpm add @searchmcp/client
+# or
+yarn add @searchmcp/client
 ```
 
-Requires Node.js 18+ (for native `fetch`).
+Requires Node.js **18+** (native `fetch`).
+
+---
 
 ## Usage
 
-```js
-import {createSearchMCPClient} from "@searchmcp/client";
+```ts
+import {createClient} from "@searchmcp/client";
 
-const client = createSearchMCPClient({apiKey: process.env.SEARCHMCP_API_KEY});
+const client = createClient(process.env.SEARCHMCP_API_KEY);
 
-const res = await client.search("latest GPU deals", "USA", "US", 10, "PAST_WEEK");
+// Simple web search
+const res = await client.search({
+    query: "latest GPU deals",
+    country: "US",
+    numberOfResults: 5,
+});
 
-console.log(res.status); // "SUCCESS"
-console.log(res.organic?.map(r => r.title));
+console.log(res.status);   // "SUCCESS"
+console.log(res.results);  // array of results
 ```
 
-### Constructor Options
+---
+
+## Client Factory
 
 ```ts
-type SearchMCPClientOptions = {
-    apiKey: string;                   // required
-    baseURL?: string;                 // defaults to https://api.searchmcp.io
-    timeout?: number;                 // request timeout in ms (default 10000)
-    maxRetries?: number;              // retries on 429/5xx (default 2)
-    userAgentExtra?: string;          // appended to user-agent header
-};
+import {createClient, SearchMCPClient} from "@searchmcp/client";
+
+const client: SearchMCPClient = createClient("smcp_123", "https://api.searchmcp.io");
 ```
 
-### `search` Method
+- `apiKey` — required
+- `basePath` — defaults to `https://api.searchmcp.io`
 
-```ts
-async
-search(
-    query
-:
-string,
-    location ? : Location,              // Location enum key or value
-    country ? : CountryCode,            // ISO 3166-1 alpha-2
-    numberOfResults ? : number,         // default 10, max 100
-    dateRange ? : DateRange,            // ANYTIME, PAST_YEAR, PAST_MONTH, etc.
-    options ? : {signal? : AbortSignal}
-):
-Promise<SearchResponse>
-```
+---
 
-- `query` is required and trimmed.
-- All other parameters are optional.
-- Throws `APIError` on input validation error, network error, timeout, or invalid server response.
+## Schemas & Types
 
-### Error Handling
-
-Errors are instances of `APIError`:
-
-```ts
-try {
-    await client.search("apple inc");
-} catch (e) {
-    if (e.name === "APIError") {
-        console.error(e.status, e.message, e.details);
-    }
-}
-```
-
-### Schemas & Types
-
-The client exports zod schemas and inferred TypeScript types:
+All request/response schemas and types are generated from the OpenAPI spec and exported:
 
 ```ts
 import {
-    SearchRequestSchema,
-    SearchResponseSchema,
-    type SearchRequest,
-    type SearchResponse,
+    SearchRequest,
+    SearchResponse,
+    SearchStatus,
 } from "@searchmcp/client";
 ```
+
+See the interactive [API Reference](https://searchmcp.io/api-reference) for details:
+
+- [SearchRequest model](https://searchmcp.io/api-reference#model/searchrequest)
+- [SearchResponse model](https://searchmcp.io/api-reference#model/searchresponse)
+
+---
 
 ## Development
 
 ```bash
 pnpm install
-pnpm test
+pnpm generate   # re-generate from OpenAPI spec
+pnpm build
 ```
 
-Tests use [vitest](https://vitest.dev/) with fake timers and fetch mocks.
+---
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE)
